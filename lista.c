@@ -108,8 +108,15 @@ int removerElemento(Lista *lista, size_t posicao) {
 }
 
 void imprimirLista(const Lista *lista) {
-    if (lista == NULL || lista->cabeca == NULL) {
+    if (lista == NULL) {
+        printf("Lista invalida.\n");
+        return;
+    }
+
+    printf("\n===== CONTEUDO DA LISTA =====\n");
+    if (lista->cabeca == NULL) {
         printf("Lista vazia.\n");
+        printf("Total de elementos: 0\n");
         return;
     }
 
@@ -134,6 +141,8 @@ void imprimirLista(const Lista *lista) {
         atual = atual->proximo;
         indice++;
     }
+
+    printf("Total de elementos: %zu\n", lista->tamanho);
 }
 
 int salvarLista(const Lista *lista, const char *nomeArquivo) {

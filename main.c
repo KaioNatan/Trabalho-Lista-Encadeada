@@ -1,5 +1,9 @@
 #include "lista.h"
 
+#include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,56 +11,124 @@
 #define TAMANHO_ENTRADA 256
 #define ARQUIVO_PADRAO "lista.bin"
 
+/* Le um inteiro e rejeita entradas com letras ou caracteres extras. */
 static int lerInteiro(const char *mensagem, int *valor) {
     char linha[TAMANHO_ENTRADA];
-    char extra;
+    char *fim;
+    long numero;
+
     printf("%s", mensagem);
     if (fgets(linha, sizeof linha, stdin) == NULL) return 0;
-    return sscanf(linha, " %d %c", valor, &extra) == 1;
+
+    errno = 0;
+    numero = strtol(linha, &fim, 10);
+    if (fim == linha || errno == ERANGE || numero < INT_MIN || numero > INT_MAX)
+        return 0;
+
+    while (isspace((unsigned char)*fim)) fim++;
+    if (*fim != '\0') return 0;
+
+    *valor = (int)numero;
+    return 1;
+}
+
+/* Le um numero real finito e rejeita caracteres extras. */
+static int lerReal(const char *mensagem, float *valor) {
+    char linha[TAMANHO_ENTRADA];
+    char *fim;
+    float numero;
+
+    printf("%s", mensagem);
+    if (fgets(linha, sizeof linha, stdin) == NULL) return 0;
+
+    errno = 0;
+    numero = strtof(linha, &fim);
+    if (fim == linha || errno == ERANGE || !isfinite(numero)) return 0;
+
+    while (isspace((unsigned char)*fim)) fim++;
+    if (*fim != '\0') return 0;
+
+    *valor = numero;
+    return 1;
 }
 
 static int lerPosicao(const char *mensagem, size_t *posicao) {
-    int valor;
-    if (!lerInteiro(mensagem, &valor) || valor < 0) return 0;
-    *posicao = (size_t)valor;
+    char linha[TAMANHO_ENTRADA];
+    char *fim;
+    unsigned long long numero;
+
+    printf("%s", mensagem);
+    if (fgets(linha, sizeof linha, stdin) == NULL) return 0;
+    if (linha[0] == '-') return 0;
+
+    errno = 0;
+    numero = strtoull(linha, &fim, 10);
+    if (fim == linha || errno == ERANGE || numero > (unsigned long long)SIZE_MAX)
+        return 0;
+
+    while (isspace((unsigned char)*fim)) fim++;
+    if (*fim != '\0') return 0;
+
+    *posicao = (size_t)numero;
+    return 1;
+}
+
+static int lerTexto(const char *mensagem, char *texto, size_t capacidade) {
+    size_t tamanho;
+    int caractere;
+
+    printf("%s", mensagem);
+    if (fgets(texto, (int)capacidade, stdin) == NULL) return 0;
+
+    tamanho = strlen(texto);
+    if (tamanho > 0 && texto[tamanho - 1] == '\n') {
+        texto[tamanho - 1] = '\0';
+    } else {
+        /* Descarta o restante caso o texto ultrapasse o limite do buffer. */
+        while ((caractere = getchar()) != '\n' && caractere != EOF) { }
+        if (tamanho == capacidade - 1) return 0;
+    }
     return 1;
 }
 
 static void inserirPeloMenu(Lista *lista) {
     int tipo;
     if (!lerInteiro("Tipo (1-Inteiro, 2-Real, 3-Texto): ", &tipo)) {
-        printf("Entrada invalida.\n"); return;
+        printf("Entrada invalida. Digite 1, 2 ou 3.\n");
+        return;
     }
 
     if (tipo == TIPO_INTEIRO) {
         int valor;
         if (!lerInteiro("Digite o inteiro: ", &valor)) {
-            printf("Valor invalido.\n"); return;
+            printf("Valor inteiro invalido.\n");
+            return;
         }
         printf(inserirElemento(lista, tipo, &valor) ? "Elemento inserido.\n" : "Falha ao inserir.\n");
     } else if (tipo == TIPO_REAL) {
-        char linha[TAMANHO_ENTRADA];
         float valor;
-        printf("Digite o numero real (use ponto decimal): ");
-        if (fgets(linha, sizeof linha, stdin) == NULL || sscanf(linha, "%f", &valor) != 1) {
-            printf("Valor invalido.\n"); return;
+        if (!lerReal("Digite o numero real (use ponto decimal): ", &valor)) {
+            printf("Numero real invalido.\n");
+            return;
         }
         printf(inserirElemento(lista, tipo, &valor) ? "Elemento inserido.\n" : "Falha ao inserir.\n");
     } else if (tipo == TIPO_TEXTO) {
         char texto[TAMANHO_ENTRADA];
-        printf("Digite o texto: ");
-        if (fgets(texto, sizeof texto, stdin) == NULL) return;
-        texto[strcspn(texto, "\n")] = '\0';
+        if (!lerTexto("Digite o texto: ", texto, sizeof texto)) {
+            printf("Texto invalido ou muito longo.\n");
+            return;
+        }
         printf(inserirElemento(lista, tipo, texto) ? "Elemento inserido.\n" : "Falha ao inserir.\n");
     } else {
-        printf("Tipo inexistente.\n");
+        printf("Tipo inexistente. Escolha 1, 2 ou 3.\n");
     }
 }
 
 static void buscarPeloMenu(const Lista *lista) {
     int tipo;
     if (!lerInteiro("Tipo para buscar (1-Inteiro, 2-Real, 3-Texto): ", &tipo)) {
-        printf("Tipo invalido.\n"); return;
+        printf("Tipo invalido.\n");
+        return;
     }
 
     int inteiro;
@@ -66,31 +138,36 @@ static void buscarPeloMenu(const Lista *lista) {
 
     if (tipo == TIPO_INTEIRO) {
         if (!lerInteiro("Digite o inteiro procurado: ", &inteiro)) {
-            printf("Valor invalido.\n"); return;
+            printf("Valor inteiro invalido.\n");
+            return;
         }
         chave = &inteiro;
     } else if (tipo == TIPO_REAL) {
-        char linha[TAMANHO_ENTRADA];
-        printf("Digite o numero real procurado: ");
-        if (fgets(linha, sizeof linha, stdin) == NULL || sscanf(linha, "%f", &real) != 1) {
-            printf("Valor invalido.\n"); return;
+        if (!lerReal("Digite o numero real procurado: ", &real)) {
+            printf("Numero real invalido.\n");
+            return;
         }
         chave = &real;
     } else if (tipo == TIPO_TEXTO) {
-        printf("Digite o texto procurado: ");
-        if (fgets(texto, sizeof texto, stdin) == NULL) return;
-        texto[strcspn(texto, "\n")] = '\0';
+        if (!lerTexto("Digite o texto procurado: ", texto, sizeof texto)) {
+            printf("Texto invalido ou muito longo.\n");
+            return;
+        }
         chave = texto;
     } else {
-        printf("Tipo inexistente.\n"); return;
+        printf("Tipo inexistente.\n");
+        return;
     }
 
     No *no = buscarElemento(lista, tipo, chave);
-    if (no == NULL) printf("Elemento nao encontrado.\n");
-    else printf("Elemento encontrado: "),
-         (tipo == TIPO_INTEIRO ? printf("%d\n", *(int *)no->dados) :
-          tipo == TIPO_REAL ? printf("%.2f\n", *(float *)no->dados) :
-                              printf("%s\n", (char *)no->dados));
+    if (no == NULL) {
+        printf("Elemento nao encontrado.\n");
+    } else {
+        printf("Elemento encontrado: ");
+        if (tipo == TIPO_INTEIRO) printf("%d\n", *(int *)no->dados);
+        else if (tipo == TIPO_REAL) printf("%.2f\n", *(float *)no->dados);
+        else printf("%s\n", (char *)no->dados);
+    }
 }
 
 int main(void) {
@@ -109,7 +186,8 @@ int main(void) {
         printf("0 - Sair\n");
 
         if (!lerInteiro("Escolha: ", &opcao)) {
-            printf("Opcao invalida.\n");
+            printf("Opcao invalida. Digite um numero do menu.\n");
+            opcao = -1;
             continue;
         }
 
@@ -120,7 +198,7 @@ int main(void) {
             case 2: {
                 size_t posicao;
                 if (!lerPosicao("Posicao para remover (comeca em 0): ", &posicao))
-                    printf("Posicao invalida.\n");
+                    printf("Posicao invalida. Use um numero inteiro nao negativo.\n");
                 else
                     printf(removerElemento(&lista, posicao) ? "Elemento removido.\n" : "Nao foi possivel remover.\n");
                 break;
