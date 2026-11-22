@@ -23,7 +23,9 @@ typedef struct {
 
 void inicializarLista(Lista *lista);
 int inserirElemento(Lista *lista, int tipo, const void *dados);
+int inserirNoInicio(Lista *lista, int tipo, const void *dados);
 int removerElemento(Lista *lista, size_t posicao);
+int removerPorValor(Lista *lista, int tipo, const void *dados);
 No *buscarElemento(const Lista *lista, int tipo, const void *dados);
 void imprimirLista(const Lista *lista);
 int salvarLista(const Lista *lista, const char *nomeArquivo);

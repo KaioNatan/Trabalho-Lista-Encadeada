@@ -170,6 +170,80 @@ static void buscarPeloMenu(const Lista *lista) {
     }
 }
 
+static void inserirNoInicioPeloMenu(Lista *lista) {
+    int tipo;
+    if (!lerInteiro("Tipo (1-Inteiro, 2-Real, 3-Texto): ", &tipo)) {
+        printf("Tipo invalido.\n");
+        return;
+    }
+
+    if (tipo == TIPO_INTEIRO) {
+        int valor;
+        if (!lerInteiro("Digite o inteiro: ", &valor)) {
+            printf("Valor inteiro invalido.\n");
+            return;
+        }
+        printf(inserirNoInicio(lista, tipo, &valor) ? "Elemento inserido no inicio.\n" : "Falha ao inserir.\n");
+    } else if (tipo == TIPO_REAL) {
+        float valor;
+        if (!lerReal("Digite o numero real: ", &valor)) {
+            printf("Numero real invalido.\n");
+            return;
+        }
+        printf(inserirNoInicio(lista, tipo, &valor) ? "Elemento inserido no inicio.\n" : "Falha ao inserir.\n");
+    } else if (tipo == TIPO_TEXTO) {
+        char texto[TAMANHO_ENTRADA];
+        if (!lerTexto("Digite o texto: ", texto, sizeof texto)) {
+            printf("Texto invalido.\n");
+            return;
+        }
+        printf(inserirNoInicio(lista, tipo, texto) ? "Elemento inserido no inicio.\n" : "Falha ao inserir.\n");
+    } else {
+        printf("Tipo inexistente. Escolha 1, 2 ou 3.\n");
+    }
+}
+
+/* Le o tipo e o valor e remove a primeira ocorrencia correspondente. */
+static void removerValorPeloMenu(Lista *lista) {
+    int tipo;
+    if (!lerInteiro("Tipo (1-Inteiro, 2-Real, 3-Texto): ", &tipo)) {
+        printf("Tipo invalido.\n");
+        return;
+    }
+
+    int inteiro;
+    float real;
+    char texto[TAMANHO_ENTRADA];
+    const void *chave = NULL;
+
+    if (tipo == TIPO_INTEIRO) {
+        if (!lerInteiro("Digite o inteiro para remover: ", &inteiro)) {
+            printf("Valor inteiro invalido.\n");
+            return;
+        }
+        chave = &inteiro;
+    } else if (tipo == TIPO_REAL) {
+        if (!lerReal("Digite o real para remover: ", &real)) {
+            printf("Numero real invalido.\n");
+            return;
+        }
+        chave = &real;
+    } else if (tipo == TIPO_TEXTO) {
+        if (!lerTexto("Digite o texto para remover: ", texto, sizeof texto)) {
+            printf("Texto invalido.\n");
+            return;
+        }
+        chave = texto;
+    } else {
+        printf("Tipo inexistente.\n");
+        return;
+    }
+
+    printf(removerPorValor(lista, tipo, chave)
+        ? "Elemento removido com sucesso.\n"
+        : "Elemento nao encontrado.\n");
+}
+
 int main(void) {
     Lista lista;
     inicializarLista(&lista);
@@ -183,6 +257,8 @@ int main(void) {
         printf("4 - Imprimir lista\n");
         printf("5 - Salvar lista em arquivo binario\n");
         printf("6 - Carregar lista de arquivo binario\n");
+        printf("7 - Inserir elemento no inicio\n");
+        printf("8 - Remover elemento pelo valor\n");
         printf("0 - Sair\n");
 
         if (!lerInteiro("Escolha: ", &opcao)) {
@@ -205,6 +281,12 @@ int main(void) {
             }
             case 3:
                 buscarPeloMenu(&lista);
+                break;
+            case 7:
+                inserirNoInicioPeloMenu(&lista);
+                break;
+            case 8:
+                removerValorPeloMenu(&lista);
                 break;
             case 4:
                 imprimirLista(&lista);

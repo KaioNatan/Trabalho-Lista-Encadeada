@@ -31,6 +31,30 @@ static size_t tamanhoDoDado(int tipo, const void *dados) {
     }
 }
 
+/* Insere um novo no antes da cabeca atual da lista. */
+int inserirNoInicio(Lista *lista, int tipo, const void *dados) {
+    if (lista == NULL || dados == NULL) return 0;
+
+    size_t bytes = tamanhoDoDado(tipo, dados);
+    if (bytes == 0 || (tipo == TIPO_TEXTO && bytes > TAMANHO_MAX_TEXTO)) return 0;
+
+    No *novo = malloc(sizeof(No));
+    if (novo == NULL) return 0;
+
+    novo->dados = malloc(bytes);
+    if (novo->dados == NULL) {
+        free(novo);
+        return 0;
+    }
+
+    memcpy(novo->dados, dados, bytes);
+    novo->tipo = tipo;
+    novo->proximo = lista->cabeca;
+    lista->cabeca = novo;
+    lista->tamanho++;
+    return 1;
+}
+
 int inserirElemento(Lista *lista, int tipo, const void *dados) {
     if (lista == NULL || dados == NULL) return 0;
 
@@ -105,6 +129,41 @@ int removerElemento(Lista *lista, size_t posicao) {
     liberarNo(removido);
     lista->tamanho--;
     return 1;
+}
+
+/* Remove a primeira ocorrencia de um valor e libera sua memoria. */
+int removerPorValor(Lista *lista, int tipo, const void *dados) {
+    if (lista == NULL || dados == NULL) return 0;
+
+    No *atual = lista->cabeca;
+    No *anterior = NULL;
+
+    while (atual != NULL) {
+        int iguais = 0;
+        if (atual->tipo == tipo) {
+            if (tipo == TIPO_INTEIRO)
+                iguais = *(int *)atual->dados == *(const int *)dados;
+            else if (tipo == TIPO_REAL)
+                iguais = *(float *)atual->dados == *(const float *)dados;
+            else if (tipo == TIPO_TEXTO)
+                iguais = strcmp((const char *)atual->dados, (const char *)dados) == 0;
+        }
+
+        if (iguais) {
+            if (anterior == NULL)
+                lista->cabeca = atual->proximo;
+            else
+                anterior->proximo = atual->proximo;
+
+            liberarNo(atual);
+            lista->tamanho--;
+            return 1;
+        }
+
+        anterior = atual;
+        atual = atual->proximo;
+    }
+    return 0;
 }
 
 void imprimirLista(const Lista *lista) {
