@@ -31,30 +31,6 @@ static size_t tamanhoDoDado(int tipo, const void *dados) {
     }
 }
 
-/* Insere um novo no antes da cabeca atual da lista. */
-int inserirNoInicio(Lista *lista, int tipo, const void *dados) {
-    if (lista == NULL || dados == NULL) return 0;
-
-    size_t bytes = tamanhoDoDado(tipo, dados);
-    if (bytes == 0 || (tipo == TIPO_TEXTO && bytes > TAMANHO_MAX_TEXTO)) return 0;
-
-    No *novo = malloc(sizeof(No));
-    if (novo == NULL) return 0;
-
-    novo->dados = malloc(bytes);
-    if (novo->dados == NULL) {
-        free(novo);
-        return 0;
-    }
-
-    memcpy(novo->dados, dados, bytes);
-    novo->tipo = tipo;
-    novo->proximo = lista->cabeca;
-    lista->cabeca = novo;
-    lista->tamanho++;
-    return 1;
-}
-
 int inserirElemento(Lista *lista, int tipo, const void *dados) {
     if (lista == NULL || dados == NULL) return 0;
 
@@ -82,6 +58,29 @@ int inserirElemento(Lista *lista, int tipo, const void *dados) {
         atual->proximo = novo;
     }
 
+    lista->tamanho++;
+    return 1;
+}
+
+int inserirNoInicio(Lista *lista, int tipo, const void *dados) {
+    if (lista == NULL || dados == NULL) return 0;
+
+    size_t bytes = tamanhoDoDado(tipo, dados);
+    if (bytes == 0 || (tipo == TIPO_TEXTO && bytes > TAMANHO_MAX_TEXTO)) return 0;
+
+    No *novo = malloc(sizeof(No));
+    if (novo == NULL) return 0;
+
+    novo->dados = malloc(bytes);
+    if (novo->dados == NULL) {
+        free(novo);
+        return 0;
+    }
+
+    memcpy(novo->dados, dados, bytes);
+    novo->tipo = tipo;
+    novo->proximo = lista->cabeca;
+    lista->cabeca = novo;
     lista->tamanho++;
     return 1;
 }
@@ -131,7 +130,6 @@ int removerElemento(Lista *lista, size_t posicao) {
     return 1;
 }
 
-/* Remove a primeira ocorrencia de um valor e libera sua memoria. */
 int removerPorValor(Lista *lista, int tipo, const void *dados) {
     if (lista == NULL || dados == NULL) return 0;
 
@@ -150,16 +148,12 @@ int removerPorValor(Lista *lista, int tipo, const void *dados) {
         }
 
         if (iguais) {
-            if (anterior == NULL)
-                lista->cabeca = atual->proximo;
-            else
-                anterior->proximo = atual->proximo;
-
+            if (anterior == NULL) lista->cabeca = atual->proximo;
+            else anterior->proximo = atual->proximo;
             liberarNo(atual);
             lista->tamanho--;
             return 1;
         }
-
         anterior = atual;
         atual = atual->proximo;
     }
